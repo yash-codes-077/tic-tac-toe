@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Yash's Tic Tac Toe</title>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="msg-container hide">
+    <p id="msg">Winner</p>
+    <button id="new-btn">New Game</button>
+  </div>
+  
+  <main>
+    <h1>🎮 Tic Tac Toe</h1>
+
+    <h2 id="turn">Turn: O</h2>
+
+    <div class="scoreboard">
+    <p>⭕ O Wins: <span id="o-score">0</span></p>
+    <p>❌ X Wins: <span id="x-score">0</span></p>
+    </div>
+
+    <button id="theme-toggle">Change Mode</button>
+    <div class="mode-wrapper">
+  <label for="mode">🎮 Select opponent:</label>
+  <select id="mode">
+    <option value="friend">👫 Play with Friend</option>
+    <option value="ai">🤖 Play with AI</option>
+  </select>
+</div>
+
+
+    <div class="container">
+      <div class="game">
+        <button class="box"></button>
+        <button class="box"></button>
+        <button class="box"></button>
+        <button class="box"></button>
+        <button class="box"></button>
+        <button class="box"></button>
+        <button class="box"></button>
+        <button class="box"></button>
+        <button class="box"></button>
+      </div>
+    </div>
+    <button id="reset-btn">Reset Game</button>
+  </main>
+
+  <script src="script.js"></script>
+  <footer class="footer">
+  <p>🎮 Made with ❤️ by <strong>Yash</strong></p>
+</footer>
+
+</body>
+</html>
