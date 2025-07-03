@@ -1,179 +1,186 @@
-let boxes = document.querySelectorAll(".box");
-let resetBtn = document.querySelector("#reset-btn");
-let newGameBtn = document.querySelector("#new-btn");
-let msgContainer = document.querySelector(".msg-container");
-let msg = document.querySelector("#msg");
-let turnText = document.querySelector("#turn");
-let oScoreDisplay = document.querySelector("#o-score");
-let xScoreDisplay = document.querySelector("#x-score");
-let themeToggle = document.querySelector("#theme-toggle");
-let modeSelect = document.querySelector("#mode");
+// === Tic Tac Toe: Yash's Advanced AI Version ===
+
+const boxes = document.querySelectorAll(".box");
+const resetBtn = document.querySelector("#reset-btn");
+const newGameBtn = document.querySelector("#new-btn");
+const msgContainer = document.querySelector(".msg-container");
+const msg = document.querySelector("#msg");
+const modeToggle = document.querySelector("#theme-toggle");
+const turnText = document.querySelector("#turn");
+const oScoreDisplay = document.querySelector("#o-score");
+const xScoreDisplay = document.querySelector("#x-score");
 
 let turnO = true;
 let count = 0;
+let playWithAI = false;
 let oScore = 0;
 let xScore = 0;
-let gameMode = "friend";
 
-// ✅ WIN PATTERNS
 const winPatterns = [
-  [0, 1, 2],
-  [0, 3, 6],
-  [0, 4, 8],
-  [1, 4, 7],
-  [2, 5, 8],
-  [2, 4, 6],
-  [3, 4, 5],
-  [6, 7, 8],
+    [0, 1, 2], [0, 3, 6], [0, 4, 8],
+    [1, 4, 7], [2, 5, 8], [2, 4, 6],
+    [3, 4, 5], [6, 7, 8],
 ];
 
-// ✅ SOUND FILES (ensure these paths are correct)
-let moveSound = new Audio("sounds/move.mp3");
-let winSound = new Audio("sounds/win.mp3");
-let drawSound = new Audio("sounds/draw.mp3");
+function updateTurnText() {
+    turnText.innerText = `Turn: ${turnO ? "O" : "X"}`;
+}
 
-const playSound = (sound) => {
-  sound.pause();
-  sound.currentTime = 0;
-  sound.play().catch(() => {}); // prevents error on autoplay
-};
+function disableBoxes() {
+    boxes.forEach(box => box.disabled = true);
+}
 
-const updateTurnText = () => {
-  turnText.innerText = `Turn: ${turnO ? "O" : "X"}`;
-};
+function enableBoxes() {
+    boxes.forEach(box => {
+        box.disabled = false;
+        box.innerText = "";
+    });
+}
 
-const disableBoxes = () => {
-  boxes.forEach((box) => (box.disabled = true));
-};
-
-const enableBoxes = () => {
-  boxes.forEach((box) => {
-    box.disabled = false;
-    box.innerText = "";
-  });
-};
-
-const showWinner = (winner) => {
-  setTimeout(() => {
-    playSound(winSound);
+function showWinner(winner) {
     msg.innerText = `🎉 Winner is: ${winner}`;
     msgContainer.classList.remove("hide");
+    disableBoxes();
 
     if (winner === "O") {
-      oScore++;
-      oScoreDisplay.innerText = oScore;
+        oScore++;
+        oScoreDisplay.innerText = oScore;
     } else {
-      xScore++;
-      xScoreDisplay.innerText = xScore;
+        xScore++;
+        xScoreDisplay.innerText = xScore;
     }
-  }, 300);
+}
 
-  disableBoxes();
-};
-
-const gameDraw = () => {
-  setTimeout(() => {
-    playSound(drawSound);
-    msg.innerText = "Game was a draw.";
+function gameDraw() {
+    msg.innerText = `😐 It's a draw!`;
     msgContainer.classList.remove("hide");
-  }, 300);
-  disableBoxes();
-};
+    disableBoxes();
+}
 
-const checkWinner = () => {
-  for (let pattern of winPatterns) {
-    let [a, b, c] = pattern;
-    if (
-      boxes[a].innerText &&
-      boxes[a].innerText === boxes[b].innerText &&
-      boxes[b].innerText === boxes[c].innerText
-    ) {
-      showWinner(boxes[a].innerText);
-      return true;
+function checkWinner() {
+    for (let pattern of winPatterns) {
+        let a = boxes[pattern[0]].innerText;
+        let b = boxes[pattern[1]].innerText;
+        let c = boxes[pattern[2]].innerText;
+
+        if (a !== "" && a === b && b === c) {
+            showWinner(a);
+            return true;
+        }
     }
-  }
-  return false;
-};
+    return false;
+}
 
-const resetGame = () => {
-  turnO = true;
-  count = 0;
-  enableBoxes();
-  msgContainer.classList.add("hide");
-  updateTurnText();
-};
-
-// ✅ AI LOGIC
-const aiMove = () => {
-  let emptyBoxes = Array.from(boxes).filter((box) => box.innerText === "");
-  if (emptyBoxes.length === 0) return;
-
-  let randomBox = emptyBoxes[Math.floor(Math.random() * emptyBoxes.length)];
-
-  setTimeout(() => {
-    randomBox.innerText = "X";
-    randomBox.disabled = true;
-    playSound(moveSound);
-
+function resetGame() {
     turnO = true;
-    count++;
+    count = 0;
+    enableBoxes();
+    msgContainer.classList.add("hide");
     updateTurnText();
+}
 
-    const won = checkWinner();
-    if (!won && count === 9) gameDraw();
-  }, 600);
-};
+function makeBestAIMove() {
+    let bestScore = -Infinity;
+    let move;
+    for (let i = 0; i < boxes.length; i++) {
+        if (boxes[i].innerText === "") {
+            boxes[i].innerText = "X";
+            let score = minimax(boxes, 0, false);
+            boxes[i].innerText = "";
+            if (score > bestScore) {
+                bestScore = score;
+                move = i;
+            }
+        }
+    }
 
-// ✅ MAIN CLICK LOGIC
+    if (move !== undefined) {
+        boxes[move].innerText = "X";
+        boxes[move].disabled = true;
+        turnO = true;
+        count++;
+        updateTurnText();
+        let isWinner = checkWinner();
+        if (count === 9 && !isWinner) {
+            gameDraw();
+        }
+    }
+}
+
+function minimax(newBoard, depth, isMaximizing) {
+    let result = evaluateBoard();
+    if (result !== null) return result;
+
+    if (isMaximizing) {
+        let bestScore = -Infinity;
+        for (let i = 0; i < newBoard.length; i++) {
+            if (newBoard[i].innerText === "") {
+                newBoard[i].innerText = "X";
+                let score = minimax(newBoard, depth + 1, false);
+                newBoard[i].innerText = "";
+                bestScore = Math.max(score, bestScore);
+            }
+        }
+        return bestScore;
+    } else {
+        let bestScore = Infinity;
+        for (let i = 0; i < newBoard.length; i++) {
+            if (newBoard[i].innerText === "") {
+                newBoard[i].innerText = "O";
+                let score = minimax(newBoard, depth + 1, true);
+                newBoard[i].innerText = "";
+                bestScore = Math.min(score, bestScore);
+            }
+        }
+        return bestScore;
+    }
+}
+
+function evaluateBoard() {
+    for (let pattern of winPatterns) {
+        let a = boxes[pattern[0]].innerText;
+        let b = boxes[pattern[1]].innerText;
+        let c = boxes[pattern[2]].innerText;
+
+        if (a && a === b && b === c) {
+            return a === "X" ? 10 : -10;
+        }
+    }
+
+    let openSpots = [...boxes].filter(b => b.innerText === "");
+    if (openSpots.length === 0) return 0;
+
+    return null;
+}
+
 boxes.forEach((box) => {
-  box.addEventListener("click", () => {
-    if (box.innerText !== "") return;
+    box.addEventListener("click", () => {
+        if (box.innerText !== "" || !turnO) return;
 
-    if (gameMode === "ai") {
-      if (turnO) {
         box.innerText = "O";
         box.disabled = true;
-        playSound(moveSound);
-
         turnO = false;
         count++;
         updateTurnText();
 
-        const won = checkWinner();
-        if (won || count === 9) {
-          if (!won) gameDraw();
-          return;
+        let isWinner = checkWinner();
+        if (count === 9 && !isWinner) {
+            gameDraw();
+        } else if (playWithAI && !turnO) {
+            setTimeout(makeBestAIMove, 300);
         }
-
-        aiMove(); // AI plays after human
-      }
-    } else {
-      // Friend mode
-      box.innerText = turnO ? "O" : "X";
-      box.disabled = true;
-      playSound(moveSound);
-
-      turnO = !turnO;
-      count++;
-      updateTurnText();
-
-      const won = checkWinner();
-      if (!won && count === 9) gameDraw();
-    }
-  });
+    });
 });
 
 resetBtn.addEventListener("click", resetGame);
 newGameBtn.addEventListener("click", resetGame);
 
-themeToggle?.addEventListener("click", () => {
-  document.body.classList.toggle("light-theme");
+modeToggle.addEventListener("click", () => {
+    playWithAI = !playWithAI;
+    modeToggle.innerText = playWithAI ? "Mode: AI" : "Mode: Friend";
+    resetGame();
 });
 
-modeSelect.addEventListener("change", (e) => {
-  gameMode = e.target.value;
-  resetGame();
-});
-
+// Initial Setup
 updateTurnText();
 
