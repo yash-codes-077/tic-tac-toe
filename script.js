@@ -15,7 +15,6 @@ let oScore = 0;
 let xScore = 0;
 let gameMode = "friend";
 
-// ✅ WIN PATTERNS
 const winPatterns = [
   [0, 1, 2],
   [0, 3, 6],
@@ -27,7 +26,6 @@ const winPatterns = [
   [6, 7, 8],
 ];
 
-// ✅ SOUND FILES (ensure these paths are correct)
 let moveSound = new Audio("sounds/move.mp3");
 let winSound = new Audio("sounds/win.mp3");
 let drawSound = new Audio("sounds/draw.mp3");
@@ -35,7 +33,7 @@ let drawSound = new Audio("sounds/draw.mp3");
 const playSound = (sound) => {
   sound.pause();
   sound.currentTime = 0;
-  sound.play().catch(() => {}); // prevents error on autoplay
+  sound.play().catch(() => {});
 };
 
 const updateTurnText = () => {
@@ -67,7 +65,6 @@ const showWinner = (winner) => {
       xScoreDisplay.innerText = xScore;
     }
   }, 300);
-
   disableBoxes();
 };
 
@@ -103,28 +100,108 @@ const resetGame = () => {
   updateTurnText();
 };
 
-// ✅ AI LOGIC
+// ✅ AI Move (1s delay, smart, no freeze)
 const aiMove = () => {
-  let emptyBoxes = Array.from(boxes).filter((box) => box.innerText === "");
-  if (emptyBoxes.length === 0) return;
-
-  let randomBox = emptyBoxes[Math.floor(Math.random() * emptyBoxes.length)];
-
   setTimeout(() => {
-    randomBox.innerText = "X";
-    randomBox.disabled = true;
-    playSound(moveSound);
+    let emptyBoxes = Array.from(boxes).filter((box) => box.innerText === "");
 
-    turnO = true;
-    count++;
-    updateTurnText();
+    // ⚡ Fast smart move if it's AI's first turn
+    if (count <= 1) {
+      const smartFirstMoves = [0, 2, 4, 6, 8]; // corners + center
+      const available = smartFirstMoves.filter(i => boxes[i].innerText === "");
+      const choice = available[Math.floor(Math.random() * available.length)];
 
-    const won = checkWinner();
-    if (!won && count === 9) gameDraw();
-  }, 600);
+      if (choice !== undefined) {
+        boxes[choice].innerText = "X";
+        boxes[choice].disabled = true;
+        playSound(moveSound);
+        turnO = true;
+        count++;
+        updateTurnText();
+
+        const won = checkWinner();
+        if (!won && count === 9) gameDraw();
+        return;
+      }
+    }
+
+    // 🔁 Otherwise use smart minimax AI
+    let bestScore = -Infinity;
+    let bestMove = null;
+
+    boxes.forEach((box, index) => {
+      if (box.innerText === "") {
+        box.innerText = "X";
+        let score = minimax(boxes, 0, false);
+        box.innerText = "";
+        if (score > bestScore) {
+          bestScore = score;
+          bestMove = index;
+        }
+      }
+    });
+
+    if (bestMove !== null) {
+      boxes[bestMove].innerText = "X";
+      boxes[bestMove].disabled = true;
+      playSound(moveSound);
+      turnO = true;
+      count++;
+      updateTurnText();
+
+      const won = checkWinner();
+      if (!won && count === 9) gameDraw();
+    }
+  }, 1000); // 1s delay
 };
 
-// ✅ MAIN CLICK LOGIC
+
+// ✅ Minimax Algorithm
+const minimax = (board, depth, isMaximizing) => {
+  let result = evaluate(board);
+  if (result !== null) return result;
+
+  if (isMaximizing) {
+    let best = -Infinity;
+    board.forEach((box) => {
+      if (box.innerText === "") {
+        box.innerText = "X";
+        best = Math.max(best, minimax(board, depth + 1, false));
+        box.innerText = "";
+      }
+    });
+    return best;
+  } else {
+    let best = Infinity;
+    board.forEach((box) => {
+      if (box.innerText === "") {
+        box.innerText = "O";
+        best = Math.min(best, minimax(board, depth + 1, true));
+        box.innerText = "";
+      }
+    });
+    return best;
+  }
+};
+
+const evaluate = (board) => {
+  for (let pattern of winPatterns) {
+    let [a, b, c] = pattern;
+    let va = board[a].innerText;
+    let vb = board[b].innerText;
+    let vc = board[c].innerText;
+
+    if (va && va === vb && vb === vc) {
+      if (va === "X") return 10;
+      else if (va === "O") return -10;
+    }
+  }
+
+  let isDraw = Array.from(board).every((box) => box.innerText !== "");
+  return isDraw ? 0 : null;
+};
+
+// ✅ Box Click Logic
 boxes.forEach((box) => {
   box.addEventListener("click", () => {
     if (box.innerText !== "") return;
@@ -134,7 +211,6 @@ boxes.forEach((box) => {
         box.innerText = "O";
         box.disabled = true;
         playSound(moveSound);
-
         turnO = false;
         count++;
         updateTurnText();
@@ -145,14 +221,13 @@ boxes.forEach((box) => {
           return;
         }
 
-        aiMove(); // AI plays after human
+        aiMove(); // Trigger AI move after 1s
       }
     } else {
-      // Friend mode
+      // Friend Mode
       box.innerText = turnO ? "O" : "X";
       box.disabled = true;
       playSound(moveSound);
-
       turnO = !turnO;
       count++;
       updateTurnText();
